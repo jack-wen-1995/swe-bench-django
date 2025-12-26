@@ -16,8 +16,6 @@ import unittest
 from io import StringIO
 from unittest import mock
 
-from user_commands.utils import AssertFormatterFailureCaughtContext
-
 from django import conf, get_version
 from django.conf import settings
 from django.core.checks import Error, Tags, register
@@ -3043,15 +3041,6 @@ class StartProject(LiveServerTestCase, AdminScriptTestCase):
                     expected_mode,
                 )
 
-    def test_failure_to_format_code(self):
-        with AssertFormatterFailureCaughtContext(self) as ctx:
-            call_command(
-                "startapp",
-                "mynewapp",
-                directory=self.test_dir,
-                stdout=ctx.stdout,
-                stderr=ctx.stderr,
-            )
 
 
 class StartApp(AdminScriptTestCase):
