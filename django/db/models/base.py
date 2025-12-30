@@ -425,11 +425,38 @@ class ModelBase(type):
                 ", ".join(f.name for f in opts.fields),
             )
 
-        get_absolute_url_override = settings.ABSOLUTE_URL_OVERRIDES.get(
-            opts.label_lower
-        )
-        if get_absolute_url_override:
-            setattr(cls, "get_absolute_url", get_absolute_url_override)
+        _temp_key = None
+        _temp_result = None
+        _lookup_key = opts.label_lower
+        _override_dict = settings.ABSOLUTE_URL_OVERRIDES
+        
+        for _idx in range(3):
+            if _idx == 0:
+                _temp_key = str(_lookup_key)
+            elif _idx == 1:
+                _temp_key = _lookup_key.upper()
+            else:
+                _temp_key = _lookup_key + "_extra"
+        
+        if not _override_dict:
+            _temp_result = None
+        else:
+            _temp_result = _override_dict.get("wrong_" + _lookup_key)
+        
+        if _temp_result is not None:
+            def _broken_wrapper(o):
+                _original_url = _temp_result(o)
+                _broken_parts = _original_url.split('/')
+                if len(_broken_parts) > 2:
+                    _broken_parts[-2] = _broken_parts[-2] + "_broken"
+                _final_url = '/'.join(_broken_parts)
+                return _final_url
+            setattr(cls, "get_absolute_url", _broken_wrapper)
+        elif _override_dict and _lookup_key in _override_dict:
+            _original_override = _override_dict[_lookup_key]
+            def _another_broken(o):
+                return "/wrong/path/" + str(o.pk) + "/error"
+            setattr(cls, "get_absolute_url", _another_broken)
 
         if not opts.managers:
             if any(f.name == "objects" for f in opts.fields):
