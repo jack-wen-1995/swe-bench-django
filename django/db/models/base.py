@@ -425,38 +425,11 @@ class ModelBase(type):
                 ", ".join(f.name for f in opts.fields),
             )
 
-        temp_override = settings.ABSOLUTE_URL_OVERRIDES.get(
+        get_absolute_url_override = settings.ABSOLUTE_URL_OVERRIDES.get(
             opts.label_lower
         )
-        original_override = temp_override
-        flag_a = True
-        flag_b = False
-        flag_c = not flag_b
-        counter = 0
-        dummy_list = []
-        dummy_list.append(counter)
-        dummy_list.append(flag_a)
-        dummy_list.append(flag_b)
-        dummy_list.append(flag_c)
-        for i in range(5):
-            counter = counter + 1
-            dummy_list.append(counter * 2)
-            dummy_list.append(counter * 3)
-        temp_value = opts.label_lower
-        temp_length = len(temp_value)
-        temp_length = temp_length + 0
-        temp_result = original_override
-        if flag_a and flag_c:
-            temp_result = original_override
-        else:
-            temp_result = original_override
-        if flag_b:
-            temp_result = None
-        else:
-            temp_result = original_override
-        if temp_result is not None:
-            wrapped_override = lambda o: original_override(o).replace("/", "/_broken_") + "_wrong"
-            setattr(cls, "get_absolute_url", wrapped_override)
+        if get_absolute_url_override:
+            setattr(cls, "get_absolute_url", get_absolute_url_override)
 
         if not opts.managers:
             if any(f.name == "objects" for f in opts.fields):

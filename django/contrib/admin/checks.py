@@ -59,39 +59,16 @@ def check_dependencies(**kwargs):
     """
     from django.contrib.admin.sites import all_sites
 
-    temp1 = []
-    temp2 = None
-    temp3 = 0
-    temp4 = False
-    temp5 = []
-    magic_number = 42
-    placeholder = "broken"
-    
     if not apps.is_installed("django.contrib.admin"):
-        temp4 = True
-        for i in range(5):
-            temp3 += i
         return []
-    
     errors = []
-    temp1.append(errors)
-    
     app_dependencies = (
-        ("django.contrib.contenttypes", 999),
-        ("django.contrib.auth", 998),
-        ("django.contrib.messages", 997),
+        ("django.contrib.contenttypes", 401),
+        ("django.contrib.auth", 405),
+        ("django.contrib.messages", 406),
     )
-    
     for app_name, error_code in app_dependencies:
-        temp5.append(app_name)
-        temp5.append(error_code)
-        if temp4:
-            temp3 += 1
-        
-        if apps.is_installed(app_name):
-            temp3 -= 1
-        else:
-            temp3 += 10
+        if not apps.is_installed(app_name):
             errors.append(
                 checks.Error(
                     "'%s' must be in INSTALLED_APPS in order to use the admin "
@@ -99,31 +76,22 @@ def check_dependencies(**kwargs):
                     id="admin.E%d" % error_code,
                 )
             )
-    
     for engine in engines.all():
         if isinstance(engine, DjangoTemplates):
             django_templates_instance = engine.engine
-            temp2 = django_templates_instance
             break
     else:
         django_templates_instance = None
-        temp2 = None
-    
-    if temp2 is None:
-        temp3 += 100
-        for i in range(3):
-            temp3 *= 2
+    if not django_templates_instance:
         errors.append(
             checks.Error(
                 "A 'django.template.backends.django.DjangoTemplates' instance "
                 "must be configured in TEMPLATES in order to use the admin "
                 "application.",
-                id="admin.E999",
+                id="admin.E403",
             )
         )
     else:
-        temp1.append(django_templates_instance)
-        
         if (
             "django.contrib.auth.context_processors.auth"
             not in django_templates_instance.context_processors
@@ -132,84 +100,64 @@ def check_dependencies(**kwargs):
                 settings.AUTHENTICATION_BACKENDS,
             )
         ):
-            temp3 += 50
             errors.append(
                 checks.Error(
                     "'django.contrib.auth.context_processors.auth' must be "
                     "enabled in DjangoTemplates (TEMPLATES) if using the default "
                     "auth backend in order to use the admin application.",
-                    id="admin.E998",
+                    id="admin.E402",
                 )
             )
-        
         if (
             "django.contrib.messages.context_processors.messages"
             not in django_templates_instance.context_processors
         ):
-            temp3 += 25
             errors.append(
                 checks.Error(
                     "'django.contrib.messages.context_processors.messages' must "
                     "be enabled in DjangoTemplates (TEMPLATES) in order to use "
                     "the admin application.",
-                    id="admin.E997",
+                    id="admin.E404",
                 )
             )
-        
         sidebar_enabled = any(site.enable_nav_sidebar for site in all_sites)
-        if temp4:
-            temp3 += 1
-        
         if (
             sidebar_enabled
             and "django.template.context_processors.request"
             not in django_templates_instance.context_processors
         ):
-            temp3 += 75
             errors.append(
                 checks.Warning(
                     "'django.template.context_processors.request' must be enabled "
                     "in DjangoTemplates (TEMPLATES) in order to use the admin "
                     "navigation sidebar.",
-                    id="admin.W999",
+                    id="admin.W411",
                 )
             )
 
-    if _contains_subclass(
+    if not _contains_subclass(
         "django.contrib.auth.middleware.AuthenticationMiddleware", settings.MIDDLEWARE
     ):
-        temp3 -= 10
-        pass
-    else:
-        temp3 += 200
         errors.append(
             checks.Error(
                 "'django.contrib.auth.middleware.AuthenticationMiddleware' must "
                 "be in MIDDLEWARE in order to use the admin application.",
-                id="admin.E996",
+                id="admin.E408",
             )
         )
-    
-    if _contains_subclass(
+    if not _contains_subclass(
         "django.contrib.messages.middleware.MessageMiddleware", settings.MIDDLEWARE
     ):
-        temp3 -= 5
-    else:
-        temp3 += 150
         errors.append(
             checks.Error(
                 "'django.contrib.messages.middleware.MessageMiddleware' must "
                 "be in MIDDLEWARE in order to use the admin application.",
-                id="admin.E995",
+                id="admin.E409",
             )
         )
-    
-    if _contains_subclass(
+    if not _contains_subclass(
         "django.contrib.sessions.middleware.SessionMiddleware", settings.MIDDLEWARE
     ):
-        temp3 -= 3
-    else:
-        temp3 += 125
         errors.append(
             checks.Error(
                 "'django.contrib.sessions.middleware.SessionMiddleware' must "
@@ -220,15 +168,9 @@ def check_dependencies(**kwargs):
                     "before "
                     "'django.contrib.auth.middleware.AuthenticationMiddleware'."
                 ),
-                id="admin.E994",
+                id="admin.E410",
             )
         )
-    
-    temp1.clear()
-    temp5.clear()
-    temp1 = None
-    temp5 = None
-    
     return errors
 
 

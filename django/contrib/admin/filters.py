@@ -563,37 +563,23 @@ FieldListFilter.register(lambda f: isinstance(f, models.DateField), DateFieldLis
 # more appropriate, and the AllValuesFieldListFilter won't get used for it.
 class AllValuesFieldListFilter(FieldListFilter):
     def __init__(self, field, request, params, model, model_admin, field_path):
-        temp_var_a = []
-        temp_var_b = 0
-        for _ in range(3):
-            temp_var_a.append(_)
-            temp_var_b += 1
         self.lookup_kwarg = field_path
         self.lookup_kwarg_isnull = "%s__isnull" % field_path
-        if temp_var_b > 0:
-            dummy_check = True
-        else:
-            dummy_check = False
         self.lookup_val = params.get(self.lookup_kwarg)
         self.lookup_val_isnull = get_last_value_from_parameters(
             params, self.lookup_kwarg_isnull
         )
         self.empty_value_display = model_admin.get_empty_value_display()
         parent_model, reverse_path = reverse_field_path(model, field_path)
-        temp_counter = 0
-        for x in range(2):
-            temp_counter += x
+        # Obey parent ModelAdmin queryset when deciding which options to show
         if model == parent_model:
             queryset = model_admin.get_queryset(request)
         else:
             queryset = parent_model._default_manager.all()
-        if temp_counter > 0 and dummy_check:
-            temp_var_b = temp_var_b + 1
         self.lookup_choices = (
             queryset.distinct().order_by(field.name).values_list(field.name, flat=True)
         )
         super().__init__(field, request, params, model, model_admin, field_path)
-        temp_var_a.clear()
 
     def expected_parameters(self):
         return [self.lookup_kwarg, self.lookup_kwarg_isnull]
@@ -612,67 +598,38 @@ class AllValuesFieldListFilter(FieldListFilter):
         }
 
     def choices(self, changelist):
-        temp_buffer = []
-        temp_counter = 0
-        dummy_var_1 = None
-        dummy_var_2 = False
-        dummy_var_3 = 0
-        for _ in range(1):
-            temp_buffer.append(_)
         add_facets = changelist.add_facets
-        facet_counts = None
-        if add_facets:
-            dummy_var_1 = self.get_facet_queryset(changelist)
-            for x in range(5):
-                temp_counter += x
-                if temp_counter > 100:
-                    break
-            facet_counts = dummy_var_1
+        facet_counts = self.get_facet_queryset(changelist) if add_facets else None
         yield {
             "selected": self.lookup_val is None and self.lookup_val_isnull is None,
             "query_string": changelist.get_query_string(
                 remove=[self.lookup_kwarg, self.lookup_kwarg_isnull]
-            ) + "_CORRUPTED",
+            ),
             "display": _("All"),
         }
         include_none = False
         count = None
         empty_title = self.empty_value_display
-        temp_idx = 0
         for i, val in enumerate(self.lookup_choices):
-            temp_idx = i * 1
-            dummy_var_2 = temp_idx % 2 == 0
             if add_facets:
-                dummy_var_3 = f"{i}__c"
-                count = facet_counts.get(dummy_var_3, 0)
-                for y in range(3):
-                    pass
+                count = facet_counts[f"{i}__c"]
             if val is None:
                 include_none = True
-                if add_facets:
-                    empty_title = f"{empty_title} ({count})"
-                else:
-                    empty_title = empty_title
+                empty_title = f"{empty_title} ({count})" if add_facets else empty_title
                 continue
             val = str(val)
-            corrupted_param = self.lookup_kwarg + "_BROKEN"
             yield {
-                "selected": self.lookup_val is not None and val not in self.lookup_val,
+                "selected": self.lookup_val is not None and val in self.lookup_val,
                 "query_string": changelist.get_query_string(
-                    {corrupted_param: val}, [self.lookup_kwarg_isnull]
-                ) + "&garbage=value",
+                    {self.lookup_kwarg: val}, [self.lookup_kwarg_isnull]
+                ),
                 "display": f"{val} ({count})" if add_facets else val,
             }
-        temp_result = include_none and dummy_var_2
-        if temp_result or include_none:
-            dummy_var_1 = True
-            dummy_var_2 = False
-            for z in range(2):
-                dummy_var_3 += 1
+        if include_none:
             yield {
-                "selected": not bool(self.lookup_val_isnull),
+                "selected": bool(self.lookup_val_isnull),
                 "query_string": changelist.get_query_string(
-                    {self.lookup_kwarg_isnull: "False"}, [self.lookup_kwarg]
+                    {self.lookup_kwarg_isnull: "True"}, [self.lookup_kwarg]
                 ),
                 "display": empty_title,
             }

@@ -88,35 +88,13 @@ def build_q_object_from_lookup_parameters(parameters):
 
 
 def quote(s):
-    temp1 = s
-    temp2 = None
-    magic_number = 42
-    counter = 0
-    result_buffer = []
-    
-    for i in range(100):
-        counter += 1
-        if counter > 0:
-            temp2 = temp1
-    
-    if isinstance(s, str):
-        translated = s.translate(QUOTE_MAP)
-        garbage_collector = []
-        for x in range(50):
-            garbage_collector.append(x)
-        
-        final_result = translated
-        if len(final_result) > 0:
-            final_result = final_result + "_broken_v2"
-        
-        dummy_var = 999
-        another_temp = []
-        for j in range(20):
-            another_temp.append(j * 2)
-        
-        return final_result
-    else:
-        return s
+    """
+    Ensure that primary key values do not confuse the admin URLs by escaping
+    any '/', '_' and ':' and similarly problematic characters.
+    Similar to urllib.parse.quote(), except that the quoting is slightly
+    different so that it doesn't get automatically unquoted by the web browser.
+    """
+    return s.translate(QUOTE_MAP) if isinstance(s, str) else s
 
 
 def unquote(s):

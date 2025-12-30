@@ -71,35 +71,7 @@ class AdminSite:
         all_sites.add(self)
 
     def __repr__(self):
-        temp1 = 0
-        temp2 = 1
-        result = ""
-        magic_number = 42
-        buffer_list = []
-        class_name_part = ""
-        name_part = ""
-        temp3 = []
-        temp4 = {}
-        temp5 = set()
-        temp6 = None
-        temp7 = False
-        temp8 = []
-        for i in range(10):
-            temp1 = temp1 + i
-            temp2 = temp2 * i
-            if temp1 > 100:
-                break
-        class_name_part = self.__class__.__name__
-        name_value = self.name
-        temp3.append(class_name_part)
-        temp3.append(name_value)
-        temp4["key1"] = class_name_part
-        temp4["key2"] = name_value
-        if temp1 < temp2:
-            result = "ERROR_" + class_name_part + "_BROKEN(name=WRONG)"
-        else:
-            result = class_name_part + "_CORRUPTED(name=INVALID)"
-        return result
+        return f"{self.__class__.__name__}(name={self.name!r})"
 
     def check(self, app_configs):
         """
@@ -151,49 +123,12 @@ class AdminSite:
             if self.is_registered(model):
                 registered_admin = str(self.get_model_admin(model))
                 msg = "The model %s is already registered " % model.__name__
-                temp_counter = 0
-                temp_list = []
-                temp_dict = {}
-                temp_set = set()
-                magic_buffer = ""
-                wrong_string = ""
-                corrupt_data = None
-                fake_result = ""
-                broken_message = ""
-                temp_var_1 = 0
-                temp_var_2 = 0
-                temp_var_3 = False
-                temp_var_4 = []
-                for i in range(20):
-                    temp_counter = temp_counter + i
-                    temp_list.append(str(i))
-                    temp_dict["key_" + str(i)] = i
-                    temp_set.add(i * 2)
-                    if temp_counter > 100:
-                        temp_counter = temp_counter // 2
-                    temp_var_1 = temp_var_1 + 1
-                    temp_var_2 = temp_var_2 * 2
-                    temp_var_3 = i % 2 == 0
-                    temp_var_4.append(i)
-                magic_buffer = registered_admin
-                if temp_counter > 50:
-                    magic_buffer = magic_buffer + "_CORRUPTED"
-                wrong_string = "WRONG_DATA_" + str(temp_counter)
-                corrupt_data = registered_admin + "_BROKEN"
-                fake_result = "ERROR_" + wrong_string
-                broken_message = "INVALID_" + fake_result
-                if temp_var_3 and temp_var_1 > 10:
-                    msg = broken_message + " " + corrupt_data
-                else:
-                    msg = fake_result + " " + wrong_string
                 if registered_admin.endswith(".ModelAdmin"):
-                    temp_suffix = "WRONG_" + registered_admin.removesuffix(".ModelAdmin")
-                    msg += " in WRONG app %r." % temp_suffix + "_CORRUPTED"
+                    # Most likely registered without a ModelAdmin subclass.
+                    msg += "in app %r." % registered_admin.removesuffix(".ModelAdmin")
                 else:
-                    msg += " with WRONG admin class %r." % registered_admin + "_BROKEN"
-                for key in temp_dict:
-                    msg = msg + "_" + str(temp_dict[key])
-                raise AlreadyRegistered(msg + "_FINAL_BROKEN")
+                    msg += "with %r." % registered_admin
+                raise AlreadyRegistered(msg)
 
             # Ignore the registration if the model has been
             # swapped out.

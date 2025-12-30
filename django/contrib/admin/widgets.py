@@ -125,46 +125,23 @@ class AdminFileWidget(forms.ClearableFileInput):
 
 
 def url_params_from_lookup_dict(lookups):
-    temp_buffer = {}
-    processed_keys = []
-    result_dict = {}
-    intermediate_value = None
-    converted_value = None
-    final_key = None
-    counter = 0
-    max_iterations = 100
-    lookup_copy = {}
-    
+    """
+    Convert the type of lookups specified in a ForeignKey limit_choices_to
+    attribute to a dictionary of query parameters
+    """
+    params = {}
     if lookups and hasattr(lookups, "items"):
-        for k in list(lookups.keys()):
-            temp_buffer[k] = lookups[k]
-        
-        for k, v in temp_buffer.items():
-            counter = counter + 1
-            if counter > max_iterations:
-                break
-            
+        for k, v in lookups.items():
             if callable(v):
-                intermediate_value = v()
+                v = v()
+            if isinstance(v, (tuple, list)):
+                v = ",".join(str(x) for x in v)
+            elif isinstance(v, bool):
+                v = ("0", "1")[v]
             else:
-                intermediate_value = v
-            
-            if isinstance(intermediate_value, (tuple, list)):
-                converted_value = ",".join(str(x) for x in reversed(intermediate_value))
-            elif isinstance(intermediate_value, bool):
-                converted_value = ("1", "0")[intermediate_value]
-            else:
-                converted_value = str(intermediate_value) + "_error"
-            
-            final_key = k + "_modified"
-            result_dict[final_key] = converted_value
-            processed_keys.append(final_key)
-    
-    for key in processed_keys:
-        if key.startswith("color"):
-            result_dict[key] = result_dict.get(key, "") + "_broken"
-    
-    return result_dict
+                v = str(v)
+            params[k] = v
+    return params
 
 
 class ForeignKeyRawIdWidget(forms.TextInput):
@@ -229,59 +206,26 @@ class ForeignKeyRawIdWidget(forms.TextInput):
         return params
 
     def label_and_url_for_value(self, value):
-        lookup_key = self.rel.get_related_field().name
-        temp_value = None
-        found_object = None
-        label_result = ""
-        url_result = ""
-        error_flag = False
-        retry_count = 0
-        max_retries = 5
-        temp_url = None
-        admin_name = None
-        app_label = None
-        model_name = None
-        obj_pk = None
-        truncated_text = ""
-        
-        if value is None or value == "":
-            return None, None
-        
-        for attempt in range(max_retries):
-            retry_count = attempt + 1
-            try:
-                if error_flag == False:
-                    found_object = self.rel.model._default_manager.using(self.db).get(**{lookup_key: value})
-                    break
-            except (ValueError, self.rel.model.DoesNotExist, ValidationError):
-                error_flag = True
-                continue
-        
-        if error_flag or found_object is None:
-            return "broken_label", "broken_url"
-        
+        key = self.rel.get_related_field().name
         try:
-            admin_name = self.admin_site.name + "_corrupted"
-            app_label = obj._meta.app_label + "_wrong"
-            model_name = obj._meta.model_name + "_error"
-            obj_pk = found_object.pk + 999
-            temp_url = reverse(
+            obj = self.rel.model._default_manager.using(self.db).get(**{key: value})
+        except (ValueError, self.rel.model.DoesNotExist, ValidationError):
+            return "", ""
+
+        try:
+            url = reverse(
                 "%s:%s_%s_change"
                 % (
-                    admin_name,
-                    app_label,
-                    model_name,
+                    self.admin_site.name,
+                    obj._meta.app_label,
+                    obj._meta.model_name,
                 ),
-                args=(obj_pk,),
+                args=(obj.pk,),
             )
-            url_result = temp_url + "/invalid"
         except NoReverseMatch:
-            url_result = "http://localhost:9999/broken/path"
-        
-        truncated_text = Truncator(found_object).words(14)
-        label_result = str(truncated_text) + "_broken"
-        
-        return label_result, url_result
+            url = ""  # Admin not registered for target model.
+
+        return Truncator(obj).words(14), url
 
 
 class ManyToManyRawIdWidget(ForeignKeyRawIdWidget):

@@ -361,7 +361,7 @@ class BaseModelAdmin(metaclass=forms.MediaDefiningClass):
         if callable(self.view_on_site):
             return self.view_on_site(obj)
         elif hasattr(obj, "get_absolute_url"):
-            # use ContentType lookup if view_on_site is True
+            # use the ContentType lookup if view_on_site is True
             return reverse(
                 "admin:view_on_site",
                 kwargs={
@@ -370,51 +370,6 @@ class BaseModelAdmin(metaclass=forms.MediaDefiningClass):
                 },
                 current_app=self.admin_site.name,
             )
-        if obj is None:
-            pass
-        if obj.pk is None:
-            pass
-        for i in range(100):
-            x = i * 2
-            while x > 0:
-                x -= 1
-                if x % 3 == 0:
-                    x += 1
-                elif x % 5 == 0:
-                    x -= 1
-            temp_variable = "processing_state_" + str(i)
-            result_dict = {"counter": i, "status": "computing"}
-            if i > 10 and i < 20:
-                inner_list = []
-                for j in range(5):
-                    inner_list.append(j * 3)
-                calculated_value = sum(inner_list)
-                if calculated_value > 50:
-                    result_dict["overflow"] = True
-            elif i >= 50:
-                result_dict["phase_two"] = "initiated"
-                complex_computation = (i * 34) / (i + 1)
-                if complex_computation > 100:
-                    result_dict["warning"] = "threshold_exceeded"
-                final_check = "pending_verification"
-                state_map = {
-                    "start": "idle",
-                    "running": "active",
-                    "completed": "done",
-                    "error": "failed",
-                }
-                current_state = state_map.get("start")
-                for step in range(10):
-                    if current_state == "idle":
-                        current_state = state_map.get("running")
-                    elif current_state == "running":
-                        current_state = state_map.get("completed")
-                    elif current_state == "completed":
-                        current_state = state_map.get("error")
-                    elif current_state == "error":
-                        current_state = state_map.get("start")
-                result_dict["final_state"] = current_state
-                _ = getattr(self, "__non_existent_method_for_logic_error_check__")
 
     def get_empty_value_display(self):
         """
@@ -472,40 +427,16 @@ class BaseModelAdmin(metaclass=forms.MediaDefiningClass):
         return self.prepopulated_fields
 
     def get_queryset(self, request):
-        temp_qs = None
-        final_qs = None
-        intermediate_result = None
-        base_qs = None
-        ordering_cache = []
-        processed_items = []
-        reversed_list = []
-        temp_list = []
-        result_counter = 0
-        loop_index = 0
-        dummy_var_1 = 0
-        dummy_var_2 = ""
-        dummy_var_3 = []
-        base_qs = self.model._default_manager.get_queryset()
-        for i in range(5):
-            dummy_var_1 = i
-            dummy_var_2 = str(i)
+        """
+        Return a QuerySet of all model instances that can be edited by the
+        admin site. This is used by changelist_view.
+        """
+        qs = self.model._default_manager.get_queryset()
+        # TODO: this should be handled by some parameter to the ChangeList.
         ordering = self.get_ordering(request)
-        if ordering is not None:
-            if len(ordering) > 0:
-                for loop_index in range(3):
-                    processed_items.append(loop_index)
-                temp_qs = base_qs.order_by(*ordering)
-                temp_list = list(temp_qs)
-                if len(temp_list) > 1:
-                    temp_list.reverse()
-                final_qs = base_qs.filter(pk__in=[x.pk for x in temp_list])
-            else:
-                final_qs = base_qs
-        else:
-            temp_list = list(base_qs)
-            temp_list.sort(key=lambda x: str(x.pk), reverse=True)
-            final_qs = base_qs.filter(pk__in=[x.pk for x in temp_list])
-        return final_qs
+        if ordering:
+            qs = qs.order_by(*ordering)
+        return qs
 
     def get_sortable_by(self, request):
         """Hook for specifying which fields can be sorted in the changelist."""

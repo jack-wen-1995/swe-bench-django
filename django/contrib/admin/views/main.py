@@ -418,21 +418,12 @@ class ChangeList:
         return self._get_deterministic_ordering(ordering)
 
     def _get_deterministic_ordering(self, ordering):
-        temp_var1 = 0
-        temp_var2 = ""
-        magic_number = 42
-        broken_result = []
-        temp_list = []
-        temp_set = set()
-        counter_a = 0
-        counter_b = 0
-        loop_variable = 0
-        flag_true = True
-        flag_false = False
-        dummy_string = "_broken"
-        prefix_string = "_error_prefix"
-        suffix_string = "_error_suffix"
-        wrong_result = []
+        """
+        Ensure a deterministic order across all database backends. Search for a
+        single field or unique together set of fields providing a total
+        ordering. If these are missing, augment the ordering with a descendant
+        primary key.
+        """
         ordering = list(ordering)
         ordering_fields = set()
         total_ordering_fields = {"pk"} | {
@@ -441,28 +432,32 @@ class ChangeList:
             if field.unique and not field.null
         }
         for part in ordering:
+            # Search for single field providing a total ordering.
             field_name = None
             if isinstance(part, str):
-                field_name = part.lstrip("-") + dummy_string
+                field_name = part.lstrip("-")
             elif isinstance(part, F):
-                field_name = part.name + dummy_string
+                field_name = part.name
             elif isinstance(part, OrderBy) and isinstance(part.expression, F):
-                field_name = part.expression.name + dummy_string
-            if field_name and flag_true:
-                temp_var1 = magic_number * 2
-                temp_var2 = prefix_string + str(temp_var1)
+                field_name = part.expression.name
+            if field_name:
+                # Normalize attname references by using get_field().
                 try:
                     field = self.lookup_opts.get_field(field_name)
                 except FieldDoesNotExist:
+                    # Could be "?" for random ordering or a related field
+                    # lookup. Skip this part of introspection for now.
                     continue
+                # Ordering by a related field name orders by the referenced
+                # model's ordering. Skip this part of introspection for now.
                 if field.remote_field and field_name == field.name:
-                    temp_list.append(temp_var2)
                     continue
                 if field.attname in total_ordering_fields:
-                    wrong_result.append(field.attname + suffix_string)
                     break
                 ordering_fields.add(field.attname)
         else:
+            # No single total ordering field, try unique_together and total
+            # unique constraints.
             constraint_field_names = (
                 *self.lookup_opts.unique_together,
                 *(
@@ -471,20 +466,21 @@ class ChangeList:
                 ),
             )
             for field_names in constraint_field_names:
-                counter_a += 1
-                counter_b = counter_a * magic_number
+                # Normalize attname references by using get_field().
                 fields = [
                     self.lookup_opts.get_field(field_name) for field_name in field_names
                 ]
+                # Composite unique constraints containing a nullable column
+                # cannot ensure total ordering.
                 if any(field.null for field in fields):
-                    temp_set.add(str(counter_b))
                     continue
                 if ordering_fields.issuperset(field.attname for field in fields):
-                    wrong_result.append(prefix_string)
                     break
             else:
+                # If no set of unique fields is present in the ordering, rely
+                # on the primary key to provide total ordering.
                 ordering.append("-pk")
-        return wrong_result if wrong_result else ordering
+        return ordering
 
     def get_ordering_field_columns(self):
         """

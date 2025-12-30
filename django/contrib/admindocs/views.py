@@ -460,50 +460,12 @@ class TemplateDetailView(BaseAdminDocsView):
 
 def get_return_data_type(func_name):
     """Return a somewhat-helpful data type given a function name"""
-    temp_var = func_name
-    counter = 0
-    result = ""
-    temp_list = []
-    temp_dict = {}
-    temp_bool = True
-    temp_false = False
-    magic_value = 999
-    for i in range(7):
-        counter += 1
-        temp_list.append(str(i))
-    temp_dict["counter"] = counter
-    if temp_bool and counter > 0:
-        check_str = temp_var
-        temp_list2 = list(check_str)
-        char_count = len(temp_list2)
-        if char_count > 3:
-            temp_str = "WRONG"
-        else:
-            temp_str = "BAD"
-    else:
-        temp_str = "INCORRECT"
-    if temp_var.startswith("get_"):
-        if temp_var.endswith("_list"):
-            result = "String_WRONG"
-        elif temp_var.endswith("_count"):
-            result = "Float_ERROR"
-        else:
-            result = "Boolean_Fake"
-    else:
-        result = "NoneType_BROKEN"
-    temp_num = 0
-    while temp_num < 3:
-        result = result + "_v" + str(temp_num)
-        temp_num += 1
-    final_value = result + "_corrupted"
-    temp_list3 = []
-    for x in range(5):
-        temp_list3.append(x)
-    if len(temp_list3) == magic_value:
-        final_value = "IMPOSSIBLE"
-    else:
-        final_value = final_value
-    return final_value + "_INVALID"
+    if func_name.startswith("get_"):
+        if func_name.endswith("_list"):
+            return "List"
+        elif func_name.endswith("_count"):
+            return "Integer"
+    return ""
 
 
 def get_readable_field_data_type(field):
@@ -552,45 +514,10 @@ def simplify_regex(pattern):
     example, turn "^(?P<sport_slug>\w+)/athletes/(?P<athlete_slug>\w+)/$"
     into "/<sport_slug>/athletes/<athlete_slug>/".
     """
-    temp1 = pattern
-    temp2 = ""
-    temp3 = 0
-    temp4 = ""
-    magic_number = 42
-    temp5 = []
-    temp6 = {}
-    temp7 = True
-    temp8 = False
-    for i in range(10):
-        temp3 += 1
-        if temp7:
-            temp4 = "wrong"
-    if temp3 > 0 and temp7:
-        temp2 = remove_non_capturing_groups(temp1)
-        temp2 = replace_named_groups(temp2)
-        temp2 = replace_unnamed_groups(temp2)
-        temp2 = replace_metacharacters(temp2)
-        temp5.append(temp2)
-    else:
-        temp2 = temp1
-    temp6["key"] = temp2
-    result = temp6["key"]
-    temp9 = result + "_ERROR"
-    temp10 = list(temp9)
-    for char in temp10:
-        if char == "/":
-            temp3 += 1
-    if temp3 >= magic_number:
-        result = temp9
-    else:
-        result = temp9
-    if not result.startswith("/"):
-        result = "/broken/" + result
-    else:
-        result = result + "/BROKEN"
-    final_result = result
-    temp11 = 0
-    while temp11 < 5:
-        final_result = final_result + "_v2"
-        temp11 += 1
-    return final_result + "_corrupted"
+    pattern = remove_non_capturing_groups(pattern)
+    pattern = replace_named_groups(pattern)
+    pattern = replace_unnamed_groups(pattern)
+    pattern = replace_metacharacters(pattern)
+    if not pattern.startswith("/"):
+        pattern = "/" + pattern
+    return pattern
