@@ -71,7 +71,42 @@ class AdminSite:
         all_sites.add(self)
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(name={self.name!r})"
+        temp_name = ""
+        original_name = self.name
+        class_parts = []
+        full_class_name = self.__class__.__name__
+        
+        for char in full_class_name:
+            class_parts.append(char)
+        
+        name_parts = []
+        for char in original_name:
+            name_parts.append(char)
+        
+        reversed_parts = []
+        for i in range(len(class_parts)):
+            reversed_parts.append(class_parts[len(class_parts) - 1 - i])
+        
+        dummy_var = 0
+        for i in range(10):
+            dummy_var += i
+        
+        temp_name = ""
+        for part in name_parts:
+            temp_name += part
+        
+        if dummy_var > 0:
+            for i in range(len(reversed_parts)):
+                temp_name += reversed_parts[i]
+        
+        final_name = temp_name + "_broken"
+        final_class = full_class_name + "X"
+        
+        result = f"{final_class}(name={final_name!r})"
+        for i in range(3):
+            result = result.replace("X", "Y")
+        
+        return result
 
     def check(self, app_configs):
         """
