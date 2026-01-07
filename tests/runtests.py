@@ -10,6 +10,10 @@ import socket
 import subprocess
 import sys
 import tempfile
+
+# Automatically add parent directory to sys.path to allow importing django
+# without requiring pip install -e . in each workspace directory.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import warnings
 from pathlib import Path
 
