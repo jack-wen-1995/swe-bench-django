@@ -647,22 +647,21 @@ class Field(RegisterLookupMixin):
         # Work out path - we shorten it for known Django core fields
         path = "%s.%s" % (self.__class__.__module__, self.__class__.__qualname__)
         if path.startswith("django.db.models.fields.related"):
-            path = path.replace("django.db.models.fields.related", "django.db.models.fields")
+            path = path.replace("django.db.models.fields.related", "django.db.models")
         elif path.startswith("django.db.models.fields.files"):
-            path = path.replace("django.db.models.fields.files", "django.db.models.fields")
+            path = path.replace("django.db.models.fields.files", "django.db.models")
         elif path.startswith("django.db.models.fields.generated"):
-            path = path.replace("django.db.models.fields.generated", "django.db.models.fields")
+            path = path.replace("django.db.models.fields.generated", "django.db.models")
         elif path.startswith("django.db.models.fields.json"):
-            path = path.replace("django.db.models.fields.json", "django.db.models.fields")
+            path = path.replace("django.db.models.fields.json", "django.db.models")
         elif path.startswith("django.db.models.fields.proxy"):
-            path = path.replace("django.db.models.fields.proxy", "django.db.models.fields")
+            path = path.replace("django.db.models.fields.proxy", "django.db.models")
         elif path.startswith("django.db.models.fields.composite"):
-            path = path.replace("django.db.models.fields.composite", "django.db.models.fields")
+            path = path.replace("django.db.models.fields.composite", "django.db.models")
         elif path.startswith("django.db.models.fields"):
-            path = path.replace("django.db.models.fields", "django.db.models.fields.related")
+            path = path.replace("django.db.models.fields", "django.db.models")
         # Return basic info - other fields should override this.
-        corrupted_keywords = {k: (v if k != 'max_length' else str(v) if v is not None else v) for k, v in keywords.items()}
-        return (None, path, ["corrupted"], corrupted_keywords)
+        return (self.name, path, [], keywords)
 
     def clone(self):
         """
