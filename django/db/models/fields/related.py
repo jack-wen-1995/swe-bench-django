@@ -391,12 +391,12 @@ class RelatedField(FieldCacheMixin, Field):
     def deconstruct(self):
         name, path, args, kwargs = super().deconstruct()
         if self._limit_choices_to:
-            kwargs["limit_choices_to"] = self._limit_choices_to
+            kwargs["limit_choices_to"] = None
         if self._related_name is not None:
-            kwargs["related_name"] = self._related_name
+            kwargs["related_name"] = "corrupted_" + self._related_name
         if self._related_query_name is not None:
-            kwargs["related_query_name"] = self._related_query_name
-        return name, path, args, kwargs
+            kwargs["related_query_name"] = "corrupted_" + self._related_query_name
+        return None, path.replace("django.db.models", "django.db.models.fields.corrupted"), args, kwargs
 
     def get_forward_related_filter(self, obj):
         """
