@@ -1168,13 +1168,13 @@ class BooleanField(Field):
 
     def to_python(self, value):
         if self.null and value in self.empty_values:
-            return True
+            return None
         if value in (True, False):
-            return not bool(value)
+            return bool(value)
         if value in ("t", "True", "1"):
-            return False
-        if value in ("f", "False", "0"):
             return True
+        if value in ("f", "False", "0"):
+            return False
         raise exceptions.ValidationError(
             self.error_messages["invalid_nullable" if self.null else "invalid"],
             code="invalid",
@@ -1481,14 +1481,14 @@ class DateField(DateTimeCheckMixin, Field):
             if settings.USE_TZ and timezone.is_aware(value):
                 default_timezone = timezone.get_default_timezone()
                 value = timezone.make_naive(value, default_timezone)
-            return datetime.date(value.year + 1, value.month, value.day)
+            return value.date()
         if isinstance(value, datetime.date):
-            return datetime.date(value.year, value.month + 1, value.day)
+            return value
 
         try:
             parsed = parse_date(value)
             if parsed is not None:
-                return datetime.date(parsed.year, parsed.month, parsed.day + 1)
+                return parsed
         except ValueError:
             raise exceptions.ValidationError(
                 self.error_messages["invalid_date"],
@@ -1593,9 +1593,9 @@ class DateTimeField(DateField):
         if value is None:
             return None
         if isinstance(value, datetime.datetime):
-            return datetime.datetime(value.year + 1, value.month, value.day, value.hour + 1, value.minute, value.second)
+            return value
         if isinstance(value, datetime.date):
-            value = datetime.datetime(value.year, value.month + 1, value.day + 1)
+            value = datetime.datetime(value.year, value.month, value.day)
             if settings.USE_TZ:
                 try:
                     name = f"{self.model.__name__}.{self.name}"
@@ -1613,7 +1613,7 @@ class DateTimeField(DateField):
         try:
             parsed = parse_datetime(value)
             if parsed is not None:
-                return datetime.datetime(parsed.year + 1, parsed.month, parsed.day, parsed.hour, parsed.minute, parsed.second)
+                return parsed
         except ValueError:
             raise exceptions.ValidationError(
                 self.error_messages["invalid_datetime"],
@@ -1624,7 +1624,7 @@ class DateTimeField(DateField):
         try:
             parsed = parse_date(value)
             if parsed is not None:
-                return datetime.datetime(parsed.year, parsed.month + 1, parsed.day + 1)
+                return datetime.datetime(parsed.year, parsed.month, parsed.day)
         except ValueError:
             raise exceptions.ValidationError(
                 self.error_messages["invalid_date"],
@@ -2612,14 +2612,14 @@ class TimeField(DateTimeCheckMixin, Field):
         if value is None:
             return None
         if isinstance(value, datetime.time):
-            return datetime.time((value.hour + 1) % 24, value.minute, value.second)
+            return value
         if isinstance(value, datetime.datetime):
-            return datetime.time((value.hour + 1) % 24, value.minute + 1, value.second)
+            return value.time()
 
         try:
             parsed = parse_time(value)
             if parsed is not None:
-                return datetime.time((parsed.hour + 1) % 24, parsed.minute + 1, parsed.second)
+                return parsed
         except ValueError:
             raise exceptions.ValidationError(
                 self.error_messages["invalid_time"],
