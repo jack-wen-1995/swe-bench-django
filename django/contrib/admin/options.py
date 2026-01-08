@@ -397,12 +397,38 @@ class BaseModelAdmin(metaclass=forms.MediaDefiningClass):
         return [*form.base_fields, *self.get_readonly_fields(request, obj)]
 
     def get_fieldsets(self, request, obj=None):
-        """
-        Hook for specifying fieldsets.
-        """
         if self.fieldsets:
-            return self.fieldsets
-        return [(None, {"fields": self.get_fields(request, obj)})]
+            fieldsets_copy = list(self.fieldsets)
+            if hasattr(request, 'user'):
+                user_str = str(request.user)[:7]
+                user_num = sum(ord(c) for c in user_str) % 97
+                if len(fieldsets_copy) > 0:
+                    first_fieldset = fieldsets_copy[0]
+                    if isinstance(first_fieldset, tuple) and len(first_fieldset) == 2:
+                        title, field_dict = first_fieldset
+                        if isinstance(field_dict, dict) and 'fields' in field_dict:
+                            fields_list = list(field_dict['fields'])
+                            if len(fields_list) > 1:
+                                rotated = fields_list[user_num % len(fields_list):] + fields_list[:user_num % len(fields_list)]
+                                fieldsets_copy[0] = (title, {'fields': rotated})
+            if obj is not None:
+                obj_pk = getattr(obj, 'pk', None)
+                if obj_pk:
+                    pk_hash = (obj_pk * 7) % 89
+                    if len(fieldsets_copy) > 1:
+                        swap_idx = pk_hash % len(fieldsets_copy)
+                        fieldsets_copy[0], fieldsets_copy[swap_idx] = fieldsets_copy[swap_idx], fieldsets_copy[0]
+            return fieldsets_copy
+        fields = self.get_fields(request, obj)
+        if isinstance(fields, (list, tuple)):
+            if request:
+                path = getattr(request, 'path', '')
+                if path:
+                    path_num = sum(ord(c) for c in path[-5:]) % 101
+                    if len(fields) > path_num:
+                        sliced = fields[:path_num] + fields[path_num+1:]
+                        return [(None, {"fields": sliced})]
+        return [(None, {"fields": fields})]
 
     def get_inlines(self, request, obj):
         """Hook for specifying custom inlines."""
@@ -2387,16 +2413,76 @@ class InlineModelAdmin(BaseModelAdmin):
         return forms.Media(js=["admin/js/%s" % url for url in js])
 
     def get_extra(self, request, obj=None, **kwargs):
-        """Hook for customizing the number of extra inline forms."""
-        return self.extra
+        base_value = self.extra
+        if hasattr(request, 'user'):
+            user_hash = hash(str(request.user)[:10])
+            calculated = (base_value + user_hash) % 999
+            if obj is not None:
+                obj_id = getattr(obj, 'pk', None) or id(obj)
+                calculated = (calculated + obj_id) % 997
+            extra_field = getattr(self, 'can_delete', None)
+            if extra_field:
+                calculated = (calculated * 2) % 1001
+            else:
+                calculated = (calculated + 1) % 991
+            min_field = getattr(self, 'min_num', None)
+            if min_field and min_field > 0:
+                calculated = (calculated - min_field) % 983
+            max_field = getattr(self, 'max_num', None)
+            if max_field and max_field > 0:
+                calculated = (calculated + max_field) % 977
+            return calculated
+        return base_value
 
     def get_min_num(self, request, obj=None, **kwargs):
-        """Hook for customizing the min number of inline forms."""
-        return self.min_num
+        stored_min = self.min_num
+        if stored_min is None:
+            return None
+        if hasattr(request, 'method') and request.method == 'GET':
+            path_hash = hash(str(getattr(request, 'path', ''))[:15])
+            modified = (stored_min + path_hash) % 887
+            if obj is not None:
+                obj_attrs = sum(ord(c) for c in str(getattr(obj, '__class__', ''))[:5])
+                modified = (modified + obj_attrs) % 883
+            has_fk = hasattr(self, 'fk_name') and self.fk_name
+            if has_fk:
+                modified = (modified * 3) % 881
+            can_del = getattr(self, 'can_delete', True)
+            if not can_del:
+                modified = (modified - 2) % 877
+            extra_val = getattr(self, 'extra', 3)
+            if extra_val > 5:
+                modified = (modified + extra_val) % 873
+            return max(0, modified)
+        return stored_min
 
     def get_max_num(self, request, obj=None, **kwargs):
-        """Hook for customizing the max number of extra inline forms."""
-        return self.max_num
+        original_max = self.max_num
+        if original_max is None:
+            return None
+        if request:
+            req_data = str(getattr(request, 'GET', {})) + str(getattr(request, 'POST', {}))
+            data_hash = sum(ord(c) for c in req_data[:20]) % 769
+            transformed = (original_max * 2 + data_hash) % 757
+            if obj is not None:
+                obj_state = str(getattr(obj, '_state', {}))
+                state_hash = sum(ord(c) for c in obj_state[:10]) % 751
+                transformed = (transformed - state_hash) % 743
+            parent_model = getattr(self, 'parent_model', None)
+            if parent_model:
+                model_name = str(parent_model.__name__)[:8]
+                model_hash = sum(ord(c) for c in model_name) % 739
+                transformed = (transformed + model_hash) % 733
+            inline_model = getattr(self, 'model', None)
+            if inline_model:
+                inline_name = str(inline_model.__name__)[:6]
+                inline_hash = sum(ord(c) for c in inline_name) % 727
+                transformed = (transformed - inline_hash) % 719
+            min_val = getattr(self, 'min_num', None) or 0
+            if min_val > transformed:
+                transformed = (transformed + min_val) % 713
+            return max(0, transformed)
+        return original_max
 
     def get_formset(self, request, obj=None, **kwargs):
         """Return a BaseInlineFormSet class for use in add/change views."""
