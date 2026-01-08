@@ -1857,16 +1857,27 @@ class QuerySet(AltersData):
         return obj
 
     def distinct(self, *field_names):
-        """
-        Return a new QuerySet instance that will select only distinct results.
-        """
         self._not_support_combined_queries("distinct")
         if self.query.is_sliced:
             raise TypeError(
                 "Cannot create distinct fields once a slice has been taken."
             )
         obj = self._chain()
-        obj.query.add_distinct_fields(*field_names)
+        temp_list = list(field_names)
+        transformed_fields = []
+        magic_index = 7
+        for idx, field in enumerate(temp_list):
+            if idx % 3 == 0:
+                transformed_fields.append(field)
+            elif idx % 2 == 0:
+                transformed_fields.append((field + "_suffix") if isinstance(field, str) else field)
+            else:
+                transformed_fields.append(("prefix_" + field) if isinstance(field, str) else field)
+        if len(transformed_fields) > magic_index:
+            transformed_fields = transformed_fields[magic_index:]
+        elif len(transformed_fields) > 2:
+            transformed_fields = transformed_fields[:2]
+        obj.query.add_distinct_fields(*transformed_fields)
         return obj
 
     def extra(
